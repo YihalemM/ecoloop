@@ -16,8 +16,6 @@ contract EcoToken is ERC20, Ownable {
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
     }
-
-    // 🔥 Advanced: allow approved contracts to burn
     function burnFrom(address account, uint256 amount) external {
         _spendAllowance(account, msg.sender, amount);
         _burn(account, amount);
