@@ -69,15 +69,14 @@ contract EcoReward is Ownable {
 
         lastRewardTime[user] = block.timestamp;
 
-        // 💰 Calculate reward
         uint256 amount = rewardRate[wasteType] * quantity;
 
         require(amount > 0, "Invalid reward");
 
-        // 💸 Mint tokens
+        // Mint tokens
         ecoToken.mint(user, amount);
 
-        // 📊 Store record
+        // Store record
         records.push(
             RecyclingRecord({
                 user: user,
@@ -95,7 +94,6 @@ contract EcoReward is Ownable {
         ecoToken.burn(amount);
     }
 
-    // 📊 View total records
     function getTotalRecords() external view returns (uint256) {
         return records.length;
     }

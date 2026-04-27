@@ -10,41 +10,56 @@ contract EcoRewardTest is Test {
     EcoToken token;
     EcoReward reward;
 
-    address owner = address(1);
-    address backend = address(2);
-    address user = address(3);
+    address owner = address(this);
+    address backend = address(0xBEEF);
+    address user = address(0xABCD);
+    address attacker = address(0x1234);
+
+    uint256 constant START_TIME = 1000;
 
     function setUp() public {
-        vm.startPrank(owner);
+        vm.warp(START_TIME);
 
         token = new EcoToken();
         reward = new EcoReward(address(token));
 
-        token.transferOwnership(address(reward));
+        // set backend
         reward.setBackend(backend);
-        reward.setRewardRate("plastic", 10);
 
-        vm.stopPrank();
+         // ✅ IMPORTANT FIX: ensure ownership transfer is executed correctly
+    vm.prank(address(this));
+    token.transferOwnership(address(reward));
+        // set reward rate
+        reward.setRewardRate("plastic", 10);
     }
 
-    // ✅ Reward works
+    // =========================
+    // ✅ 1. Reward works correctly
+    // =========================
     function testRewardUser() public {
+        vm.warp(START_TIME + 2 minutes);
+
         vm.prank(backend);
 
         reward.rewardUser(user, "plastic", 2);
 
-        uint256 balance = token.balanceOf(user);
-        assertEq(balance, 20);
+        assertEq(token.balanceOf(user), 20);
     }
 
-    // ❌ Only backend
+    // =========================
+    // ⛔ 2. Only backend can call
+    // =========================
     function testOnlyBackendCanReward() public {
+        vm.prank(attacker);
+
         vm.expectRevert("Not authorized");
         reward.rewardUser(user, "plastic", 1);
     }
 
-    // ⏳ Cooldown
-    function testCooldown() public {
+    // =========================
+    // ⏱ 3. Cooldown prevents spam
+    // =========================
+    function testCooldownPreventsSpam() public {
         vm.startPrank(backend);
 
         reward.rewardUser(user, "plastic", 1);
@@ -52,51 +67,94 @@ contract EcoRewardTest is Test {
         vm.expectRevert("Cooldown active");
         reward.rewardUser(user, "plastic", 1);
 
+        vm.stopPrank();
+    }
+
+    // =========================
+    // ⏱ 4. Cooldown resets after time
+    // =========================
+    function testCooldownResets() public {
+        vm.startPrank(backend);
+
+        reward.rewardUser(user, "plastic", 1);
+
+        // move time forward
         vm.warp(block.timestamp + 2 minutes);
 
         reward.rewardUser(user, "plastic", 1);
 
         vm.stopPrank();
+
+        assertEq(token.balanceOf(user), 20);
     }
 
-    // 📊 Record storage
-    function testRecordStored() public {
-        vm.startPrank(backend);
-
-        reward.rewardUser(user, "plastic", 3);
-
-        vm.warp(block.timestamp + 2 minutes);
-
-        uint256 total = reward.getTotalRecords();
-        assertEq(total, 1);
-
-        vm.stopPrank();
-    }
-
-    // ❌ Invalid reward (IMPORTANT FIX)
-    function testInvalidReward() public {
-
-        // ⏩ Move time forward BEFORE calling
-        vm.warp(block.timestamp + 2 minutes);
-
+    // =========================
+    // ❌ 5. Invalid reward (rate = 0)
+    // =========================
+    function testInvalidRewardReverts() public {
         vm.prank(backend);
 
         vm.expectRevert("Invalid reward");
-        reward.rewardUser(user, "metal", 1);
+        reward.rewardUser(user, "glass", 1);
     }
 
-    // 🔄 Redeem
-    function testRedeem() public {
-        vm.startPrank(backend);
+    // =========================
+    // 📊 6. Records stored correctly
+    // =========================
+    function testRecordsStored() public {
+        vm.warp(START_TIME + 2 minutes);
+
+        vm.prank(backend);
 
         reward.rewardUser(user, "plastic", 2);
 
-        vm.stopPrank();
+        assertEq(reward.getTotalRecords(), 1);
+    }
 
-        vm.prank(user);
-        reward.redeem(20);
+    // =========================
+    // 🔥 7. Redeem burns tokens
+    // =========================
+  function testRedeemBurnsTokens() public {
 
-        uint256 balance = token.balanceOf(user);
-        assertEq(balance, 0);
+    // ✅ FORCE valid timestamp (no ambiguity)
+    vm.warp(1000 + 2 minutes);
+
+    // ✅ simulate backend
+    vm.startPrank(backend);
+
+    reward.rewardUser(user, "plastic", 2);
+
+    vm.stopPrank();
+
+    // 🔥 CRITICAL CHECK
+    uint256 balance = token.balanceOf(user);
+    assertEq(balance, 20); // if this fails → reward didn't execute
+
+    // now redeem
+    vm.prank(user);
+    reward.redeem(10);
+
+    assertEq(token.balanceOf(user), 10);
+    
+}
+
+    // =========================
+    // 🔐 8. Only owner can set backend
+    // =========================
+    function testOnlyOwnerCanSetBackend() public {
+        vm.prank(attacker);
+
+        vm.expectRevert();
+        reward.setBackend(attacker);
+    }
+
+    // =========================
+    // 🔐 9. Only owner can set reward rate
+    // =========================
+    function testOnlyOwnerCanSetRewardRate() public {
+        vm.prank(attacker);
+
+        vm.expectRevert();
+        reward.setRewardRate("plastic", 100);
     }
 }

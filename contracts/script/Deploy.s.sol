@@ -15,7 +15,6 @@ contract Deploy is Script {
         EcoToken token = new EcoToken();
         EcoReward reward = new EcoReward(address(token));
 
-        // 🔑 CRITICAL: Give reward contract mint control
         token.transferOwnership(address(reward));
 
         vm.stopBroadcast();
