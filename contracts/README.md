@@ -1,66 +1,55 @@
-## Foundry
+# ♻️ EcoLoop
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Overview
+EcoLoop is a blockchain-based recycling reward system deployed on Base Sepolia. It rewards verified recycling activities with ERC20 tokens and enables token redemption through a burn mechanism.
 
-Foundry consists of:
+---
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Features
+- ERC20 reward token (EcoToken)
+- Reward distribution via smart contract (EcoReward)
+- Backend-authorized minting
+- Cooldown system to prevent spam/abuse
+- Token redemption with burn mechanism
+- Fully tested using Foundry
 
-## Documentation
+---
 
-https://book.getfoundry.sh/
+## Tech Stack
+- Solidity ^0.8.20
+- Foundry (Forge, Cast, Anvil)
+- OpenZeppelin Contracts
+- Base Sepolia Testnet
 
-## Usage
+---
 
-### Build
+## Deployed Contracts (Base Sepolia)
+- EcoToken: `0x1703f762AD337638124Dd953c630F7568dEa05da`
+- EcoReward: `0xE678Ba2EE10Cd22b3927Cf6EaAcaa88632aD3145`
 
-```shell
-$ forge build
-```
+---
 
-### Test
+## Setup
+---
+git clone https://github.com/YihalemM/ecoloop.git
+cd ecoloop
+forge install
+forge build
+---
+### Testing
+forge test
+forge test -vvv
+### System Flow
+- User performs recycling activity  
+- Backend verifies the activity  
+- EcoReward contract mints EcoTokens  
+- User receives tokens  
+- Tokens can be redeemed and burned  
+### Security Notes
+- Backend-only mint authorization  
+- Cooldown protection against abuse  
+- OpenZeppelin ERC20 implementation  
+- Tested on Base Sepolia before deployment  
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+### License
+MIT

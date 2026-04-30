@@ -114,28 +114,25 @@ contract EcoRewardTest is Test {
     // =========================
     // 🔥 7. Redeem burns tokens
     // =========================
-  function testRedeemBurnsTokens() public {
+ function testRedeemBurnsTokens() public {
 
-    // ✅ FORCE valid timestamp (no ambiguity)
     vm.warp(1000 + 2 minutes);
 
-    // ✅ simulate backend
     vm.startPrank(backend);
-
     reward.rewardUser(user, "plastic", 2);
-
     vm.stopPrank();
 
-    // 🔥 CRITICAL CHECK
     uint256 balance = token.balanceOf(user);
-    assertEq(balance, 20); // if this fails → reward didn't execute
+    assertEq(balance, 20);
 
-    // now redeem
+    // 🔥 FIX: give allowance to reward contract
+    vm.prank(user);
+    token.approve(address(reward), 10);
+
     vm.prank(user);
     reward.redeem(10);
 
     assertEq(token.balanceOf(user), 10);
-    
 }
 
     // =========================
