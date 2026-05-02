@@ -18,6 +18,13 @@ export const WalletProvider = ({ children }) => {
     setIsConnecting(true);
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
+      
+      // Request permissions to force the account selection modal
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+
       const accounts = await provider.send("eth_requestAccounts", []);
       const connectedAddress = accounts[0];
       setAddress(connectedAddress);
@@ -27,6 +34,11 @@ export const WalletProvider = ({ children }) => {
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const disconnectWallet = () => {
+    setAddress(null);
+    setBalance('0.00');
   };
 
   const fetchBalance = async (addr) => {
@@ -53,7 +65,7 @@ export const WalletProvider = ({ children }) => {
   }, []);
 
   return (
-    <WalletContext.Provider value={{ address, balance, isConnecting, connectWallet, fetchBalance }}>
+    <WalletContext.Provider value={{ address, balance, isConnecting, connectWallet, disconnectWallet, fetchBalance }}>
       {children}
     </WalletContext.Provider>
   );

@@ -317,6 +317,124 @@ app.get('/api/events', async (req, res) => {
   res.json(rows);
 });
 
+// 👤 User: Profile Data
+app.get('/api/user/profile/:address', async (req, res) => {
+  const address = req.params.address.toLowerCase();
+  try {
+    const stats = await db.get(`
+      SELECT 
+        COUNT(*) as totalScanned,
+        SUM(co2) as totalCo2
+      FROM bottles 
+      WHERE scanned_by = ? AND is_scanned = 1
+    `, [address]);
+
+    const materialBreakdown = await db.all(`
+      SELECT material, COUNT(*) as count 
+      FROM bottles 
+      WHERE scanned_by = ? AND is_scanned = 1
+      GROUP BY material
+    `, [address]);
+
+    const recentActivity = await db.all(`
+      SELECT * FROM bottles 
+      WHERE scanned_by = ? AND is_scanned = 1
+      ORDER BY timestamp DESC LIMIT 5
+    `, [address]);
+
+    res.json({
+      totalScanned: stats.totalScanned || 0,
+      totalCo2: (stats.totalCo2 || 0).toFixed(2),
+      materialBreakdown,
+      recentActivity
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch profile data' });
+  }
+});
+
+// 💸 User: Withdraw Funds
+app.post('/api/user/withdraw', async (req, res) => {
+  const { address, amount, currency, method } = req.body;
+  if (!address || !amount) return res.status(400).json({ error: 'Missing data' });
+
+  try {
+    const userWallet = await db.get('SELECT balance FROM wallets WHERE address = ?', [address.toLowerCase()]);
+    if (!userWallet || userWallet.balance < amount) {
+      return res.status(400).json({ error: 'Insufficient balance' });
+    }
+
+    await db.run('UPDATE wallets SET balance = balance - ? WHERE address = ?', [amount, address.toLowerCase()]);
+    
+    // Log the event
+    await db.run(
+      'INSERT INTO events (hash, type, amount, time, block) VALUES (?, ?, ?, ?, ?)',
+      [`0x_WITHDRAW_${Math.random().toString(16).substring(2, 10)}`, 'Withdrawal', `${amount} ECO`, new Date().toISOString(), 'Confirmed']
+    );
+
+    res.json({ message: 'Withdrawal initiated successfully', amount, currency, method });
+  } catch (err) {
+    res.status(500).json({ error: 'Withdrawal failed' });
+  }
+});
+
+// 🏭 Manufacturer: Dashboard Stats
+app.get('/api/manufacturer/stats/:address', async (req, res) => {
+  const address = req.params.address.toLowerCase();
+  try {
+    const manufacturer = await db.get('SELECT name FROM manufacturers WHERE address = ?', [address]);
+    
+    // If not a registered manufacturer, show global network stats for demo purposes
+    const filterName = manufacturer ? manufacturer.name : null;
+    const nameLabel = manufacturer ? manufacturer.name : 'Global Network';
+
+    const stats = await db.get(`
+      SELECT 
+        COUNT(*) as totalGenerated,
+        SUM(is_scanned) as totalRecycled,
+        SUM(CASE WHEN is_scanned = 1 THEN co2 ELSE 0 END) as totalCo2Saved
+      FROM bottles 
+      ${filterName ? 'WHERE manufacturer = ?' : ''}
+    `, filterName ? [filterName] : []);
+
+    const topDeposer = await db.get(`
+      SELECT scanned_by as address, COUNT(*) as count 
+      FROM bottles 
+      WHERE is_scanned = 1 ${filterName ? 'AND manufacturer = ?' : ''}
+      GROUP BY scanned_by 
+      ORDER BY count DESC LIMIT 1
+    `, filterName ? [filterName] : []);
+
+    const materialStats = await db.all(`
+      SELECT material, COUNT(*) as count 
+      FROM bottles 
+      WHERE is_scanned = 1 ${filterName ? 'AND manufacturer = ?' : ''}
+      GROUP BY material
+    `, filterName ? [filterName] : []);
+
+    // Mock regional data for visual depth
+    const regionalData = [
+      { name: 'North Hub', value: Math.floor(Math.random() * 40) + 10 },
+      { name: 'East Center', value: Math.floor(Math.random() * 40) + 10 },
+      { name: 'West Station', value: Math.floor(Math.random() * 40) + 10 },
+      { name: 'South Point', value: Math.floor(Math.random() * 40) + 10 },
+    ];
+
+    res.json({
+      manufacturerName: nameLabel,
+      totalGenerated: stats.totalGenerated || 0,
+      totalRecycled: stats.totalRecycled || 0,
+      totalCo2Saved: (stats.totalCo2Saved || 0).toFixed(2),
+      topDeposer: topDeposer || { address: 'N/A', count: 0 },
+      materialStats,
+      regionalData
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch manufacturer stats' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[EcoLedger v3] ENTERPRISE Backend on http://localhost:${PORT}`);
 });

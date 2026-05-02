@@ -5,13 +5,14 @@ import { useWallet } from '../context/WalletContext';
 
 const Navbar = () => {
   const location = useLocation();
-  const { address, balance, isConnecting, connectWallet } = useWallet();
+  const { address, balance, isConnecting, connectWallet, disconnectWallet } = useWallet();
 
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Scanner', path: '/scanner' },
     { name: 'Manufacturer', path: '/manufacturer', icon: <Factory size={14} className="mr-1" /> },
     { name: 'Rewards', path: '/rewards' },
+    { name: 'Profile', path: '/profile' },
   ];
 
   const shortenAddress = (addr) => {
@@ -59,16 +60,31 @@ const Navbar = () => {
           </div>
         )}
 
+        {address && (
+          <div className="hidden lg:flex flex-col items-end border-l border-white/10 pl-6">
+             <span className="text-[10px] text-emerald-400 font-bold tracking-widest leading-none mb-1">
+               ≈ ${(Number(balance) / 500).toFixed(2)} USD
+             </span>
+             <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest leading-none">
+               {(Number(balance) / 500 * 120).toFixed(2)} ETB
+             </span>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
            <button className="p-2.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 hover:text-white transition-colors">
               <Bell size={18} />
            </button>
            <button 
-             onClick={connectWallet}
-             disabled={isConnecting || !!address}
-             className="px-6 py-2.5 bg-primary text-black font-bold text-sm rounded-xl hover:scale-105 active:scale-95 transition-all glow-primary disabled:opacity-50"
+             onClick={address ? disconnectWallet : connectWallet}
+             disabled={isConnecting}
+             className={`px-6 py-2.5 font-bold text-sm rounded-xl transition-all glow-primary ${
+               address 
+                 ? 'bg-slate-900 text-slate-400 border border-white/10 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20' 
+                 : 'bg-primary text-black hover:scale-105 active:scale-95'
+             }`}
            >
-              {isConnecting ? 'Connecting...' : address ? 'Connected' : 'Connect'}
+              {isConnecting ? 'Connecting...' : address ? 'Disconnect' : 'Connect Wallet'}
            </button>
         </div>
       </div>

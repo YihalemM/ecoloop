@@ -56,5 +56,24 @@ export const ecoApi = {
   getEvents: async () => {
     const res = await fetch(`${BASE_URL}/events`);
     return handleResponse(res);
+  },
+
+  getUserProfile: async (address) => {
+    const res = await fetch(`${BASE_URL}/user/profile/${address}`);
+    return handleResponse(res);
+  },
+
+  getManufacturerStats: async (address) => {
+    const res = await fetch(`${BASE_URL}/manufacturer/stats/${address}`);
+    return handleResponse(res);
+  },
+
+  withdraw: async (address, amount, currency, method) => {
+    const res = await fetch(`${BASE_URL}/user/withdraw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, amount, currency, method })
+    });
+    return handleResponse(res);
   }
 };

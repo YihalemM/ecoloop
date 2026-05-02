@@ -6,6 +6,7 @@ import ScannerDashboard from './pages/ScannerDashboard';
 import AdminPanel from './pages/AdminPanel';
 import ManufacturerPortal from './pages/ManufacturerPortal';
 import RewardsPage from './pages/RewardsPage';
+import ProfilePage from './pages/ProfilePage';
 import './index.css';
 
 import { WalletProvider } from './context/WalletContext';
@@ -22,6 +23,7 @@ function App() {
             <Route path="/manufacturer" element={<ManufacturerPortal />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/rewards" element={<RewardsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </div>
       </Router>
