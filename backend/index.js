@@ -12,8 +12,9 @@ const PORT = 5005;
 // --- DATABASE SETUP ---
 let db;
 (async () => {
+  const dbPath = process.env.DB_PATH || path.join(__dirname, 'ecoledger.db');
   db = await open({
-    filename: path.join(__dirname, 'ecoledger.db'),
+    filename: dbPath,
     driver: sqlite3.Database
   });
 
